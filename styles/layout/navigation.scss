@@ -1,0 +1,11 @@
+.navigation {
+  @extend %cover;
+
+  position: fixed;
+
+  display: flex;
+  justify-content: center;
+  margin-top: 24px;
+
+  z-index: z("navigation");
+}
