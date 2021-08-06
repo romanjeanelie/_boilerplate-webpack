@@ -9,6 +9,7 @@ module.exports = merge(config, {
   plugins: [
     new HtmlWebpackPlugin({
       template: "./views/pages/home.pug",
+      inject: false,
     }),
   ],
 
