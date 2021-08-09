@@ -18,7 +18,19 @@ async function getSanityData(query) {
   return await data;
 }
 
-async function createPages(template) {
+async function createIndexPages(template) {
+  const data = { data: "données perso" };
+  const html = buildHTML(template, { data });
+
+  const destination = `./public/index.html`;
+
+  fs.writeFile(destination, html, function (err) {
+    if (err) return console.log(err);
+    console.log("page created");
+  });
+}
+
+async function createProjectPages(template) {
   const query = `{
         "projects": *[_type == 'projects']{ _id, title, body, slug }
     }`;
@@ -38,4 +50,5 @@ async function createPages(template) {
   });
 }
 
-createPages("project.html");
+createIndexPages("views/index.html");
+createProjectPages("views/project.html");
