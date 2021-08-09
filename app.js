@@ -1,51 +1,41 @@
-require("dotenv").config();
-
-const logger = require("morgan");
-const express = require("express");
-const errorHandler = require("errorhandler");
-const bodyParser = require("body-parser");
-const methodOverride = require("method-override");
-
-const app = express();
+const fs = require("fs");
 const path = require("path");
-const port = 3000;
 
-app.use(logger("dev"));
-app.use(bodyParser.json());
-app.use(bodyParser.urlencoded({ extended: false }));
-app.use(methodOverride());
-app.use(errorHandler());
-app.use(express.static(path.join(__dirname, "public")));
+const Handlebars = require("handlebars");
+const client = require("./SanityClient");
+const blocksToHtml = require("@sanity/block-content-to-html");
 
-const UAParser = require("ua-parser-js");
+function buildHTML(filename, data) {
+  const source = fs.readFileSync(filename, "utf8").toString();
+  const template = Handlebars.compile(source);
+  const output = template(data);
 
-const handleLinkResolver = (doc) => {
-  if (doc.type === "about") {
-    return "/about";
-  }
+  return output;
+}
 
-  return "/";
-};
+async function getSanityData(query) {
+  let data = await client.fetch(query);
+  return await data;
+}
 
-app.use((req, res, next) => {
-  const ua = UAParser(req.headers["user-agent"]);
+async function createPages(template) {
+  const query = `{
+        "projects": *[_type == 'projects']{ _id, title, body, slug }
+    }`;
 
-  res.locals.isDesktop = ua.device.type === undefined;
-  res.locals.isPhone = ua.device.type === "mobile";
-  res.locals.isTablet = ua.device.type === "tablet";
+  const data = await getSanityData(query);
+  const projects = data.projects;
 
-  res.locals.Link = handleLinkResolver;
+  projects.forEach((project) => {
+    const html = buildHTML(template, { project: project, nextProject: projects[1] });
 
-  next();
-});
+    const destination = `./public/${project.slug.current}.html`;
 
-app.set("views", path.join(__dirname, "views"));
-app.set("view engine", "pug");
+    fs.writeFile(destination, html, function (err) {
+      if (err) return console.log(err);
+      console.log("page created");
+    });
+  });
+}
 
-app.get("/", async (req, res) => {
-  res.render("pages/home");
-});
-
-app.listen(port, () => {
-  console.log(`Example app listening at http://localhost:${port}`);
-});
+createPages("project.html");
